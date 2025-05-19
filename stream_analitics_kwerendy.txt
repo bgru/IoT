@@ -1,0 +1,55 @@
+-- Production KPIs
+SELECT
+    deviceId,
+    CASE
+        WHEN SUM(CAST(goodCount AS float)) + SUM(CAST(badCount AS float)) > 0
+        THEN (SUM(CAST(goodCount AS float)) * 100.0 / (SUM(CAST(goodCount AS float)) + SUM(CAST(badCount AS float))))
+        ELSE 100.0
+    END AS prod_kpi,
+    SUM(CAST(goodCount AS float)) AS total_good,
+    SUM(CAST(badCount AS float)) AS total_bad,
+    System.Timestamp() AS windowEnd
+INTO
+    kpi-output
+FROM
+    "iot-hub"
+WHERE
+    productionStatus = 'Running' OR productionStatus = '1'
+GROUP BY
+    deviceId,
+    TumblingWindow(minute, 5)
+HAVING
+    SUM(CAST(goodCount AS float)) + SUM(CAST(badCount AS float)) > 0;
+-- Temperature Stats
+SELECT
+    deviceId,
+    AVG(temperature) AS avg_t,
+    MIN(temperature) AS min_t,
+    MAX(temperature) AS max_t,
+    System.Timestamp() AS windowEnd
+INTO
+    temperature-stats
+FROM
+    "iot-hub"
+GROUP BY
+    deviceId,
+    SlidingWindow(minute, 5)
+HAVING
+    COUNT(*) > 0;
+-- Device Errors
+SELECT
+    deviceId,
+    COUNT(*) AS errorCount,
+    System.Timestamp() AS windowEnd
+INTO
+    error-data
+FROM
+    "iot-hub"
+WHERE
+    deviceErrors IS NOT NULL AND deviceErrors <> '0' AND deviceErrors <> 'None'
+    OR (errorCode IS NOT NULL AND errorCode > 0)
+GROUP BY
+    deviceId,
+    TumblingWindow(minute, 1)
+HAVING
+    COUNT(*) > 3;
