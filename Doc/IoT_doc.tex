@@ -1,0 +1,618 @@
+\documentclass{article}
+
+% Pakiety
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+% \usepackage[polish]{babel}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{color}
+\usepackage{float}
+\usepackage{geometry}
+\usepackage{tikz}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+
+% Konfiguracja strony
+\geometry{a4paper, margin=1.5cm}
+
+% Konfiguracja nagłówków i stopek
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{System monitorowania produkcji przemysłowej IoT}
+\fancyhead[R]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0.4pt}
+
+% Style sekcji
+\titleformat{\section}{\normalfont\Large\bfseries}{\thesection}{1em}{}
+\titleformat{\subsection}{\normalfont\large\bfseries}{\thesubsection}{1em}{}
+
+% Konfiguracja kolorów dla listingów
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+% Definicja języka C# dla listingów
+\lstdefinelanguage{CSharp}{
+  morestring=[b]",
+  morestring=[b]',
+  morecomment=[l]{//},
+  morecomment=[s]{/*}{*/},
+  morekeywords={abstract,event,new,struct,as,explicit,null,switch,base,extern,object,this,bool,false,operator,throw,break,finally,out,true,byte,fixed,override,try,case,float,params,typeof,catch,for,private,uint,char,foreach,protected,ulong,checked,goto,public,unchecked,class,if,readonly,unsafe,const,implicit,ref,ushort,continue,in,return,using,decimal,int,sbyte,virtual,default,interface,sealed,volatile,delegate,internal,short,void,do,is,sizeof,while,double,lock,stackalloc,else,long,static,enum,namespace,string,var,dynamic,async,await,get,set,where,yield,partial,add,remove}
+}
+
+% Definicja języka JSON dla listingów
+\lstdefinelanguage{JSON}{
+  morestring=[b]",
+  morekeywords={true,false,null},
+  sensitive=true,
+  comment=[l]{//}
+}
+
+% Style dla C#
+\lstset{
+  extendedchars=true,
+  inputencoding=utf8
+}
+
+\lstdefinestyle{csharp}{
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{codepurple},
+    stringstyle=\color{codegreen},
+    basicstyle=\small\ttfamily,
+    breakatwhitespace=false,
+    breaklines=true,
+    captionpos=b,
+    keepspaces=true,
+    numbers=left,
+    numbersep=5pt,
+    showspaces=false,
+    showstringspaces=false,
+    showtabs=false,
+    tabsize=2,
+    language=CSharp
+}
+
+% Style dla JSON
+\lstdefinestyle{json}{
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{blue},
+    stringstyle=\color{codegreen},
+    basicstyle=\small\ttfamily,
+    breakatwhitespace=false,
+    breaklines=true,
+    captionpos=b,
+    keepspaces=true,
+    numbers=left,
+    numbersep=5pt,
+    showspaces=false,
+    showstringspaces=false,
+    showtabs=false,
+    tabsize=2,
+    language=JSON
+}
+
+\begin{document}
+
+\begin{titlepage}
+    \centering
+    \vspace*{1cm}
+    {\Huge\bfseries System monitorowania produkcji przemysłowej IoT \par}
+    \vspace{1.5cm}
+    {\Large Dokumentacja projektowa \par}
+    \vspace{2cm}
+    {\LARGE\textit{Autor:} \par}
+    \vspace{0.5cm}
+    {\large Bartosz Gruda \par}
+    \vfill
+    {\large \today \par}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+\section{Wprowadzenie}
+\subsection{Cel projektu}
+Celem projektu jest implementacja systemu monitorowania produkcji przemysłowej opartego na technologiach Internet of Things (IoT). System umożliwia zbieranie danych telemetrycznych z urządzeń przemysłowych za pomocą protokołu OPC UA, przetwarzanie ich w chmurze Microsoft Azure oraz analizę w czasie rzeczywistym z wykorzystaniem Azure Stream Analytics.
+
+\subsection{Zakres projektu}
+Projekt obejmuje następujące komponenty:
+\begin{itemize}
+    \item Agent IoT (\texttt{IndustrialIoT.Agent}) - aplikacja .NET Core komunikująca się z urządzeniami OPC UA
+    \item Funkcje Azure (\texttt{IndustrialIoT.Functions}) - logika biznesowa przetwarzania danych w chmurze
+    \item Zapytania Stream Analytics - przetwarzanie danych w czasie rzeczywistym
+    \item Integracja z Azure IoT Hub jako bramą do chmury
+\end{itemize}
+
+\section{Architektura systemu}
+\subsection{Schemat architektury}
+
+System składa się z następujących komponentów połączonych w poniższy sposób:
+
+\begin{center}
+    \begin{tikzpicture}[node distance=2cm]
+        % Węzły
+        \node (devices) [rectangle, draw, minimum width=3cm, minimum height=1cm] {Urządzenia OPC UA};
+        \node (agent) [rectangle, draw, minimum width=3cm, minimum height=1cm, right of=devices, xshift=2.5cm] {IoT Agent (.NET Core)};
+        \node (hub) [rectangle, draw, minimum width=3cm, minimum height=1cm, right of=agent, xshift=2.5cm] {Azure IoT Hub};
+        \node (stream) [rectangle, draw, minimum width=3cm, minimum height=1cm, right of=hub, xshift=2.5cm] {Stream Analytics};
+        \node (functions) [rectangle, draw, minimum width=3cm, minimum height=1cm, below of=stream, yshift=-1cm] {Azure Functions};
+
+        % Połączenia
+        \draw[->, thick] (devices) -- (agent);
+        \draw[->, thick] (agent) -- (hub);
+        \draw[->, thick] (hub) -- (stream);
+        \draw[->, thick] (stream) -- (functions);
+    \end{tikzpicture}
+\end{center}
+
+\subsection{Opis komponentów}
+\subsubsection{Urządzenia OPC UA}
+System obsługuje dowolne urządzenia przemysłowe zgodne ze standardem OPC UA. Urządzenia te mogą być fizycznymi sterownikami PLC, czujnikami, lub symulatorami OPC UA używanymi w środowisku testowym.
+
+\subsubsection{IndustrialIoT.Agent}
+Agent IoT to aplikacja .NET Core, która:
+\begin{itemize}
+    \item Nawiązuje połączenia z urządzeniami OPC UA
+    \item Zbiera dane telemetryczne (temperatura, liczniki produkcji, błędy)
+    \item Przesyła dane do Azure IoT Hub w bezpieczny sposób
+    \item Obsługuje konfigurację z pliku \texttt{AppSettings.json}
+\end{itemize}
+
+\subsubsection{Azure IoT Hub}
+Azure IoT Hub pełni rolę centralnej bramy zarządzającej komunikacją:
+\begin{itemize}
+    \item Obsługuje komunikację dwukierunkową między urządzeniami a chmurą
+    \item Zapewnia bezpieczną komunikację za pomocą protokołu MQTT/HTTPS
+    \item Zarządza tożsamościami urządzeń
+    \item Umożliwia routing wiadomości do innych serwisów Azure
+\end{itemize}
+
+\subsubsection{Stream Analytics}
+Azure Stream Analytics przetwarza dane w czasie rzeczywistym:
+\begin{itemize}
+    \item Oblicza kluczowe wskaźniki wydajności (KPI) produkcji
+    \item Monitoruje statystyki temperatury
+    \item Wykrywa błędy urządzeń i alarmuje o anomaliach
+\end{itemize}
+
+\subsubsection{IndustrialIoT.Functions}
+Azure Functions implementują logikę biznesową:
+\begin{itemize}
+    \item Przetwarzają wiadomości z IoT Hub
+    \item Implementują analizy danych
+    \item Udostępniają API do pobierania zagregowanych informacji
+\end{itemize}
+
+\section{Implementacja komponentów}
+\subsection{IndustrialIoT.Agent}
+\subsubsection{Struktura projektu}
+Projekt agenta składa się z następujących kluczowych plików:
+\begin{itemize}
+    \item \texttt{Program.cs} - punkt wejścia aplikacji
+    \item \texttt{IoTDevice.cs} - klasa bazowa dla urządzeń IoT
+    \item \texttt{OpcDevice.cs} - implementacja urządzenia OPC UA
+    \item \texttt{AppSettings.json} - plik konfiguracyjny
+\end{itemize}
+
+\subsubsection{Klasa IoTDevice}
+Klasa \texttt{IoTDevice} jest klasą bazową dla wszystkich urządzeń IoT w systemie. Implementuje podstawową funkcjonalność:
+
+\begin{lstlisting}[style=csharp, caption=IoTDevice.cs (fragment)]
+public abstract class IoTDevice
+{
+    protected string DeviceId { get; set; }
+    protected string ConnectionString { get; set; }
+    protected DeviceClient DeviceClient { get; set; }
+
+    public IoTDevice(string deviceId, string connectionString)
+    {
+        DeviceId = deviceId;
+        ConnectionString = connectionString;
+        DeviceClient = DeviceClient.CreateFromConnectionString(ConnectionString);
+    }
+
+    public abstract Task Initialize();
+    public abstract Task SendTelemetryAsync();
+    public abstract Task ReceiveCommands();
+}
+\end{lstlisting}
+
+\subsubsection{Klasa OpcDevice}
+Klasa \texttt{OpcDevice} rozszerza klasę \texttt{IoTDevice} i implementuje komunikację z urządzeniami OPC UA:
+
+\begin{lstlisting}[style=csharp, caption=OpcDevice.cs (fragment)]
+public class OpcDevice : IoTDevice
+{
+    private OpcClient Client { get; set; }
+    private string EndpointUrl { get; set; }
+    private string NodeId { get; set; }
+
+    public OpcDevice(string deviceId, string connectionString, 
+                     string endpointUrl, string nodeId)
+        : base(deviceId, connectionString)
+    {
+        EndpointUrl = endpointUrl;
+        NodeId = nodeId;
+    }
+
+    public override async Task Initialize()
+    {
+        Client = new OpcClient(EndpointUrl);
+        await Client.Connect();
+        // Inicjalizacja urzadzenia OPC
+    }
+
+    public override async Task SendTelemetryAsync()
+    {
+        // Odczyt danych z OPC UA
+        var temperatureValue = await Client.ReadNodeAsync(NodeId + "/Temperature");
+        var goodCountValue = await Client.ReadNodeAsync(NodeId + "/GoodCount");
+        var badCountValue = await Client.ReadNodeAsync(NodeId + "/BadCount");
+        var statusValue = await Client.ReadNodeAsync(NodeId + "/Status");
+        
+        // Przygotowanie telemetrii
+        var telemetryData = new
+        {
+            temperature = (double)temperatureValue,
+            goodCount = (int)goodCountValue,
+            badCount = (int)badCountValue,
+            productionStatus = statusValue.ToString(),
+            deviceErrors = GetDeviceErrors()
+        };
+        
+        // Wyslanie telemetrii do IoT Hub
+        var messageString = JsonConvert.SerializeObject(telemetryData);
+        var message = new Message(Encoding.UTF8.GetBytes(messageString));
+        await DeviceClient.SendEventAsync(message);
+    }
+    
+    // Pozostale metody implementacyjne
+}
+\end{lstlisting}
+
+\subsection{IndustrialIoT.Functions}
+\subsubsection{Struktura projektu}
+Projekt Azure Functions zawiera następujące kluczowe pliki:
+\begin{itemize}
+    \item \texttt{Models.cs} - modele danych dla przetwarzania wiadomości IoT
+    \item \texttt{AzureIoTService.cs} - usługa integracji z Azure IoT Hub
+    \item \texttt{BusinessLogicFunctions.cs} - funkcje zawierające logikę biznesową
+    \item \texttt{Startup.cs} - konfiguracja aplikacji
+    \item \texttt{host.json} - konfiguracja hosta Functions
+    \item \texttt{local.settings.json} - lokalne ustawienia dla środowiska deweloperskiego
+\end{itemize}
+
+\subsubsection{Modele danych}
+Plik \texttt{Models.cs} definiuje struktury danych używane w systemie:
+
+\begin{lstlisting}[style=csharp, caption=Models.cs (fragment)]
+namespace IndustrialIoT.Functions
+{
+    public class TelemetryMessage
+    {
+        public string DeviceId { get; set; }
+        public DateTime Timestamp { get; set; }
+        public double Temperature { get; set; }
+        public int GoodCount { get; set; }
+        public int BadCount { get; set; }
+        public string ProductionStatus { get; set; }
+        public string DeviceErrors { get; set; }
+    }
+    
+    public class ProductionKpi
+    {
+        public string DeviceId { get; set; }
+        public double QualityPercentage { get; set; }
+        public int TotalGood { get; set; }
+        public int TotalBad { get; set; }
+        public DateTime WindowEnd { get; set; }
+    }
+    
+    public class TemperatureStats
+    {
+        public string DeviceId { get; set; }
+        public double AverageTemperature { get; set; }
+        public double MinTemperature { get; set; }
+        public double MaxTemperature { get; set; }
+        public DateTime WindowEnd { get; set; }
+    }
+    
+    public class DeviceError
+    {
+        public string DeviceId { get; set; }
+        public int ErrorCount { get; set; }
+        public DateTime WindowEnd { get; set; }
+    }
+}
+\end{lstlisting}
+
+\subsubsection{Integracja z Azure IoT Hub}
+Plik \texttt{AzureIoTService.cs} zawiera implementację usługi do komunikacji z Azure IoT Hub:
+
+\begin{lstlisting}[style=csharp, caption=AzureIoTService.cs (fragment)]
+public class AzureIoTService
+{
+    private readonly ServiceClient _serviceClient;
+    private readonly RegistryManager _registryManager;
+    
+    public AzureIoTService(string connectionString)
+    {
+        _serviceClient = ServiceClient.CreateFromConnectionString(connectionString);
+        _registryManager = RegistryManager.CreateFromConnectionString(connectionString);
+    }
+    
+    public async Task<Device> GetDeviceAsync(string deviceId)
+    {
+        return await _registryManager.GetDeviceAsync(deviceId);
+    }
+    
+    public async Task SendCommandAsync(string deviceId, string commandName, object payload)
+    {
+        var commandMessage = new Message(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(payload)));
+        await _serviceClient.SendAsync(deviceId, commandMessage);
+    }
+    
+    // Pozostale metody do zarzadzania urzadzeniami i wiadomosciami
+}
+\end{lstlisting}
+
+\subsubsection{Funkcje biznesowe}
+Plik \texttt{BusinessLogicFunctions.cs} zawiera implementację funkcji Azure obsługujących logikę biznesową:
+
+\begin{lstlisting}[style=csharp, caption=BusinessLogicFunctions.cs (fragment)]
+public class BusinessLogicFunctions
+{
+    private readonly AzureIoTService _ioTService;
+    
+    public BusinessLogicFunctions(AzureIoTService ioTService)
+    {
+        _ioTService = ioTService;
+    }
+    
+    [FunctionName("ProcessTelemetry")]
+    public async Task ProcessTelemetry(
+        [IoTHubTrigger("messages/events", Connection = "IoTHubConnection")]
+        EventData message,
+        ILogger log)
+    {
+        try
+        {
+            string messageBody = Encoding.UTF8.GetString(message.Body.Array);
+            var telemetry = JsonConvert.DeserializeObject<TelemetryMessage>(messageBody);
+            
+            log.LogInformation($"Otrzymano telemetrie z urzadzenia: {telemetry.DeviceId}");
+            
+            // Przetwarzanie danych telemetrycznych
+            // ...
+            
+            // Zapisanie danych w bazie danych
+            // ...
+        }
+        catch (Exception ex)
+        {
+            log.LogError($"Blad przetwarzania telemetrii: {ex.Message}");
+        }
+    }
+    
+    [FunctionName("GetDeviceStatus")]
+    public async Task<IActionResult> GetDeviceStatus(
+        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "devices/{deviceId}/status")]
+        HttpRequest req,
+        string deviceId,
+        ILogger log)
+    {
+        try
+        {
+            var device = await _ioTService.GetDeviceAsync(deviceId);
+            if (device == null)
+            {
+                return new NotFoundResult();
+            }
+            
+            // Pobranie statusu urzadzenia
+            // ...
+            
+            return new OkObjectResult(deviceStatus);
+        }
+        catch (Exception ex)
+        {
+            log.LogError($"Blad pobierania statusu urzadzenia: {ex.Message}");
+            return new StatusCodeResult(StatusCodes.Status500InternalServerError);
+        }
+    }
+    
+    // Pozostale funkcje API i obslugi zdarzen
+}
+\end{lstlisting}
+
+\subsection{Stream Analytics}
+\subsubsection{Zapytania}
+Plik \texttt{stream\_analitics\_kwerendy.txt} zawiera zapytania używane w Azure Stream Analytics do przetwarzania danych w czasie rzeczywistym:
+
+\begin{lstlisting}[caption=Zapytanie obliczające KPI produkcji]
+-- Production KPIs
+SELECT
+    deviceId,
+    CASE
+        WHEN SUM(CAST(goodCount AS float)) + SUM(CAST(badCount AS float)) > 0
+        THEN (SUM(CAST(goodCount AS float)) * 100.0 / (SUM(CAST(goodCount AS float)) + SUM(CAST(badCount AS float))))
+        ELSE 100.0
+    END AS prod_kpi,
+    SUM(CAST(goodCount AS float)) AS total_good,
+    SUM(CAST(badCount AS float)) AS total_bad,
+    System.Timestamp() AS windowEnd
+INTO
+    kpi-output
+FROM
+    "iot-hub"
+WHERE
+    productionStatus = 'Running' OR productionStatus = '1'
+GROUP BY
+    deviceId,
+    TumblingWindow(minute, 5)
+HAVING
+    SUM(CAST(goodCount AS float)) + SUM(CAST(badCount AS float)) > 0;
+\end{lstlisting}
+
+\begin{lstlisting}[caption=Zapytanie monitorujące statystyki temperatury]
+-- Temperature Stats
+SELECT
+    deviceId,
+    AVG(temperature) AS avg_t,
+    MIN(temperature) AS min_t,
+    MAX(temperature) AS max_t,
+    System.Timestamp() AS windowEnd
+INTO
+    temperature-stats
+FROM
+    "iot-hub"
+GROUP BY
+    deviceId,
+    SlidingWindow(minute, 5)
+HAVING
+    COUNT(*) > 0;
+\end{lstlisting}
+
+\begin{lstlisting}[caption=Zapytanie wykrywające błędy urządzeń]
+-- Device Errors
+SELECT
+    deviceId,
+    COUNT(*) AS errorCount,
+    System.Timestamp() AS windowEnd
+INTO
+    error-data
+FROM
+    "iot-hub"
+WHERE
+    deviceErrors IS NOT NULL AND deviceErrors <> '0' AND deviceErrors <> 'None'
+    OR (errorCode IS NOT NULL AND errorCode > 0)
+GROUP BY
+    deviceId,
+    TumblingWindow(minute, 1)
+HAVING
+    COUNT(*) > 3;
+\end{lstlisting}
+
+\section{Bezpieczeństwo systemu}
+\subsection{Mechanizmy uwierzytelniania}
+System wykorzystuje następujące mechanizmy bezpieczeństwa do uwierzytelniania urządzeń i komunikacji:
+\begin{itemize}
+    \item Sygnatury SAS (Shared Access Signatures) do bezpiecznego uwierzytelniania urządzeń w Azure IoT Hub
+    \item Certyfikaty X.509 dla komunikacji z urządzeniami OPC UA
+    \item Azure Active Directory do uwierzytelniania użytkowników w aplikacjach zaplecza
+\end{itemize}
+
+\subsection{Zabezpieczenie transmisji danych}
+Komunikacja między komponentami systemu jest zabezpieczona następującymi metodami:
+\begin{itemize}
+    \item Szyfrowanie TLS 1.2 lub nowsze dla wszystkich połączeń sieciowych
+    \item Bezpieczne tunele komunikacyjne dla urządzeń za zaporami sieciowymi
+    \item Szyfrowanie przechowywanych danych w Azure Storage i Cosmos DB
+\end{itemize}
+
+\subsection{Zarządzanie tożsamościami urządzeń}
+Azure IoT Hub zapewnia:
+\begin{itemize}
+    \item Unikalną tożsamość dla każdego urządzenia
+    \item Możliwość zdalnego wyłączenia skompromitowanych urządzeń
+    \item Rotację kluczy dostępowych dla zwiększenia bezpieczeństwa
+\end{itemize}
+
+\section{Konfiguracja i wdrożenie}
+\subsection{Wymagania wstępne}
+Do uruchomienia systemu potrzebne są:
+\begin{itemize}
+    \item .NET 6.0 SDK lub nowszy
+    \item Subskrypcja Azure
+    \item Instancja Azure IoT Hub
+    \item Zadanie Stream Analytics
+    \item Urządzenia zgodne z OPC UA lub symulatory
+\end{itemize}
+
+\subsection{Konfiguracja lokalnego środowiska}
+\subsubsection{Konfiguracja agenta IoT}
+Aby skonfigurować agenta IoT, należy zaktualizować plik \texttt{AppSettings.json}:
+
+\begin{lstlisting}[style=json, caption=AppSettings.json]
+{
+  "IoTHubConnectionString": "HostName=your-iot-hub.azure-devices.net;DeviceId=your-device-id;SharedAccessKey=your-access-key",
+  "DeviceId": "device1",
+  "OpcUaEndpoint": "opc.tcp://localhost:4840",
+  "OpcUaNodeId": "ns=2;s=Machine1",
+  "TelemetryInterval": 1000,
+  "LogLevel": "Information"
+}
+\end{lstlisting}
+
+\subsubsection{Konfiguracja Azure Functions}
+Aby skonfigurować Azure Functions, należy zaktualizować plik \texttt{local.settings.json}:
+
+\begin{lstlisting}[style=json, caption=local.settings.json]
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "FUNCTIONS_WORKER_RUNTIME": "dotnet",
+    "IoTHubConnection": "HostName=your-iot-hub.azure-devices.net;SharedAccessKeyName=service;SharedAccessKey=your-access-key",
+    "CosmosDBConnection": "AccountEndpoint=https://your-account.documents.azure.com:443/;AccountKey=your-account-key;"
+  }
+}
+\end{lstlisting}
+
+\subsection{Uruchomienie lokalne}
+\subsubsection{Uruchomienie agenta IoT}
+Aby uruchomić agenta IoT lokalnie:
+\begin{lstlisting}[language=bash]
+cd IndustrialIoT.Agent
+dotnet run
+\end{lstlisting}
+
+\subsubsection{Uruchomienie Azure Functions}
+Aby uruchomić Azure Functions lokalnie:
+\begin{lstlisting}[language=bash]
+cd IndustrialIoT.Functions
+func start
+\end{lstlisting}
+
+\subsection{Wdrożenie na Azure}
+\subsubsection{Wdrożenie Azure Functions}
+Aby wdrożyć Azure Functions:
+\begin{lstlisting}[language=bash]
+cd IndustrialIoT.Functions
+func azure functionapp publish <nazwa-aplikacji-funkcji>
+\end{lstlisting}
+
+\subsubsection{Konfiguracja Stream Analytics}
+Aby skonfigurować Stream Analytics:
+\begin{enumerate}
+    \item Utwórz nowe zadanie Stream Analytics w portalu Azure
+    \item Skonfiguruj wejście ze źródła IoT Hub
+    \item Skonfiguruj wyjścia dla danych KPI, statystyk temperatury i błędów urządzeń
+    \item Dodaj zapytania z pliku \texttt{stream\_analitics\_kwerendy.txt}
+    \item Uruchom zadanie
+\end{enumerate}
+
+\subsubsection{Wdrożenie agenta IoT}
+Aby wdrożyć agenta IoT na urządzenie brzegowe:
+\begin{enumerate}
+    \item Opublikuj aplikację jako samodzielny plik wykonywalny
+    \item Skopiuj pliki na urządzenie brzegowe
+    \item Zaktualizuj \texttt{AppSettings.json} odpowiednimi wartościami konfiguracyjnymi
+    \item Uruchom aplikację
+\end{enumerate}
+
+\section{Bibliografia}
+\begin{enumerate}
+    \item Microsoft Azure IoT Hub Documentation, \url{https://docs.microsoft.com/en-us/azure/iot-hub/}
+    \item OPC Foundation, OPC UA Specification, \url{https://opcfoundation.org/about/opc-technologies/opc-ua/}
+    \item Microsoft Azure Stream Analytics Documentation, \url{https://docs.microsoft.com/en-us/azure/stream-analytics/}
+    \item Microsoft Azure Functions Documentation, \url{https://docs.microsoft.com/en-us/azure/azure-functions/}
+\end{enumerate}
+
+\end{document}
